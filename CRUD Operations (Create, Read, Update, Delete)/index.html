@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRUD Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div
+      class="flex px-8 justify-between items-center w-full bg-[#2d3748] h-[62px]"
+    >
+      <div class="w-full text-white font-bold">Landing Page</div>
+      <div
+        class="flex justify-end w-full flex-wrap space-x-4 items-center text-white hidden sm:flex"
+        id="menu"
+      >
+        <div class="hover:cursor-pointer hover:text-blue-400">Home</div>
+        <div class="hover:cursor-pointer hover:text-blue-400">About</div>
+      </div>
+      <button
+        class="text-white sm:hidden ml-2"
+        onclick="toggleMenu()"
+        id="menuToggle"
+      >
+        ☰
+      </button>
+    </div>
+
+    <div class="m-4 mb-[64px]">
+      <form id="userForm" class="flex gap-4 mb-4">
+        <input
+          type="text"
+          id="nama"
+          placeholder="Nama"
+          class="border p-2"
+          required
+        />
+        <input
+          type="email"
+          id="email"
+          placeholder="Email"
+          class="border p-2"
+          required
+        />
+        <input
+          type="number"
+          id="umur"
+          placeholder="Umur"
+          class="border p-2"
+          min="1"
+          required
+        />
+        <select id="status" class="border p-2" required>
+          <option value="">Status</option>
+          <option value="Aktif">Aktif</option>
+          <option value="Tidak Aktif">Tidak Aktif</option>
+        </select>
+        <button
+          type="button"
+          onclick="handleSubmit()"
+          id="submitBtn"
+          class="bg-blue-500 text-white px-4 py-2"
+        >
+          Add
+        </button>
+      </form>
+
+      <div class="flex flex-wrap gap-4 mb-4">
+        <select id="columnFilter" class="border p-2" onchange="applyFilter()">
+          <option value="">Pilih Kolom</option>
+          <option value="nama">Nama</option>
+          <option value="email">Email</option>
+          <option value="umur">Umur</option>
+        </select>
+        <input
+          type="text"
+          id="searchInput"
+          class="border p-2"
+          placeholder="Search value..."
+          oninput="applyFilter()"
+        />
+        <select id="statusFilter" class="border p-2" onchange="applyFilter()">
+          <option value="">Semua Status</option>
+          <option value="Aktif">Aktif</option>
+          <option value="Tidak Aktif">Tidak Aktif</option>
+        </select>
+        <div class="flex">
+          <select id="columnSort" class="border p-2" onchange="sortByColumn()">
+            <option value="">Urutkan Kolom</option>
+            <option value="nama">Nama</option>
+            <option value="email">Email</option>
+            <option value="umur">Umur</option>
+          </select>
+          <select id="sortBy" class="border p-2" onchange="sortByColumn()">
+            <option value="true">ASC</option>
+            <option value="false">DESC</option>
+          </select>
+        </div>
+      </div>
+
+      <h1 class="text-2xl font-bold text-[#2d3748] mb-4">Data Karyawan</h1>
+      <div class="overflow-x-auto">
+        <table
+          class="w-full border-collapse border border-gray-200 min-w-[600px] sm:min-w-full"
+          cellpadding="20"
+        >
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="border border-gray-300 p-2">Nama</th>
+              <th class="border border-gray-300 p-2">Email</th>
+              <th class="border border-gray-300 p-2">Umur</th>
+              <th class="border border-gray-300 p-2">Status Keanggotaan</th>
+              <th class="border border-gray-300 p-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="w-full bottom-0 fixed">
+      <div
+        class="flex justify-between align-center bg-[#2d3748] px-4 py-2 text-white"
+      >
+        <div>&#9400; Rehan Ardian Shahab</div>
+      </div>
+    </div>
+
+    <script>
+      function toggleMenu() {
+        const menu = document.getElementById("menu");
+        menu.classList.toggle("hidden");
+      }
+
+      let data = [
+        {
+          nama: "Rehan",
+          email: "rehan@example.com",
+          umur: 25,
+          status: "Aktif",
+        },
+        {
+          nama: "Ayu",
+          email: "ayu@example.com",
+          umur: 22,
+          status: "Tidak Aktif",
+        },
+      ];
+
+      let editIndex = null;
+      const tableBody = document.getElementById("tableBody");
+
+      const renderTable = (filteredData) => {
+        tableBody.innerHTML = "";
+        filteredData.forEach((item, index) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class="border border-gray-300 p-2">${item.nama}</td>
+            <td class="border border-gray-300 p-2">${item.email}</td>
+            <td class="border border-gray-300 p-2 text-center">${item.umur}</td>
+            <td class="border border-gray-300 p-2 text-center text-sm">
+              <div class="w-[120px] font-semibold rounded-lg mx-auto px-4 py-2 ${
+                item.status === "Aktif"
+                  ? "text-green-500 bg-green-200"
+                  : "text-red-500 bg-red-200"
+              }">${item.status}</div>
+            </td>
+            <td class="border border-gray-300 p-2 text-center">
+              <button class="text-blue-500 mr-2" onclick="editUser(${index})">Edit</button>
+              <button class="text-red-500" onclick="deleteUser(${index})">Delete</button>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+      };
+
+      const applyFilter = () => {
+        const filterColumn = document.getElementById("columnFilter").value;
+        const filterValue = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const statusValue = document.getElementById("statusFilter").value;
+
+        const filteredData = data.filter((item) => {
+          const matchesColumn = filterColumn
+            ? item[filterColumn].toString().toLowerCase().includes(filterValue)
+            : true;
+          const matchesStatus = statusValue
+            ? item.status === statusValue
+            : true;
+          return matchesColumn && matchesStatus;
+        });
+
+        renderTable(filteredData);
+        sortByColumn();
+      };
+
+      const handleSubmit = () => {
+        const nama = document.getElementById("nama").value;
+        const email = document.getElementById("email").value;
+        const umur = parseInt(document.getElementById("umur").value);
+        const status = document.getElementById("status").value;
+
+        if (!nama || !email || isNaN(umur) || !status)
+          return alert("Isi semua data dengan benar.");
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return alert("Email tidak valid.");
+
+        if (editIndex === null) {
+          data.push({ nama, email, umur, status });
+        } else {
+          data[editIndex] = { nama, email, umur, status };
+          editIndex = null;
+          document.getElementById("submitBtn").textContent = "Add";
+        }
+
+        document.getElementById("userForm").reset();
+        applyFilter();
+        renderTable(data);
+      };
+
+      const editUser = (index) => {
+        const user = data[index];
+        document.getElementById("nama").value = user.nama;
+        document.getElementById("email").value = user.email;
+        document.getElementById("umur").value = user.umur;
+        document.getElementById("status").value = user.status;
+        editIndex = index;
+        document.getElementById("submitBtn").textContent = "Update";
+      };
+
+      const deleteUser = (index) => {
+        data.splice(index, 1);
+        applyFilter();
+      };
+
+      const sortByColumn = () => {
+        const isAscending = document.getElementById("sortBy").value === "true";
+        const column = document.getElementById("columnSort").value || "nama";
+
+        data.sort((a, b) => {
+          if (typeof a[column] === "number") {
+            return isAscending ? a[column] - b[column] : b[column] - a[column];
+          } else {
+            return isAscending
+              ? a[column].localeCompare(b[column])
+              : b[column].localeCompare(a[column]);
+          }
+        });
+
+        applyFilter();
+      };
+
+      window.onload = () => renderTable(data);
+    </script>
+  </body>
+</html>
